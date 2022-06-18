@@ -7,19 +7,25 @@ class MoviesController < ApplicationController
   end
 
   def index
-    @all_ratings = Movie.order(:rating).select(:rating).map(&:rating).uniq
-    @checked_ratings = check
-    @checked_ratings.each do |rating|
-      params[rating] = true
-    end
+    @all_ratings = Movie.all.map{|r| r.rating}
 
-    if params[:sort]
-      @movies = Movie.order(params[:sort])
+    if params[:ratings].nil?
+      @rating_filter = @all_ratings
     else
-      @movies = Movie.where(:rating => @checked_ratings)
+      @rating_filter = params[:ratings].keys
+      session[:ratings] = params[:ratings]
     end
-  end
 
+    @rating_filter = session[:ratings].keys unless session[:ratings].nil?
+
+    if params[:sort].nil?
+      @sort = session[:sort]
+    else
+      @sort = params[:sort]
+    end
+
+    @movies = Movie.where(:rating => @rating_filter).order(@sort)
+  end
 
   def new
     # default: render 'new' template
@@ -48,19 +54,11 @@ class MoviesController < ApplicationController
     flash[:notice] = "Movie '#{@movie.title}' deleted."
     redirect_to movies_path
   end
+end
 
   private
   # Making "internal" methods private is not required, but is a common practice.
   # This helps make clear which methods respond to requests, and which ones do not.
-  def movie_params
-    params.require(:movie).permit(:title, :rating, :description, :release_date)
-  end
+ 
 
-  def check
-    if params[:ratings]
-      params[:ratings].keys
-    else
-      @all_ratings
-    end
-  end  
-end
+
